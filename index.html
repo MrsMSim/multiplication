@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Times Tables Racer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#7EC8E3;
+    --sky-bottom:#BEE7F0;
+    --road:#4A4A55;
+    --road-dark:#3A3A44;
+    --sun:#FFC857;
+    --sunset:#FF7B54;
+    --grass:#8FC93A;
+    --grass-dark:#74AC28;
+    --cream:#FFF8ED;
+    --ink:#2B2B33;
+    --player:#3AA6FF;
+    --rival:#FF5C5C;
+    --good:#3CB878;
+    --bad:#E24C4C;
+    --shadow: 0 6px 0 rgba(0,0,0,0.15);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Atkinson Hyperlegible', sans-serif;
+    background:linear-gradient(var(--sky-top), var(--sky-bottom));
+    min-height:100vh;
+    color:var(--ink);
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{ font-family:'Baloo 2', sans-serif; }
+
+  /* clouds */
+  .cloud{ position:fixed; background:#fff; border-radius:50px; opacity:0.8; z-index:0; }
+  .cloud:before, .cloud:after{ content:''; position:absolute; background:#fff; border-radius:50%; }
+  .c1{ width:90px;height:32px; top:40px; left:8%; }
+  .c1:before{width:50px;height:50px; top:-24px; left:10px;}
+  .c1:after{width:40px;height:40px; top:-16px; left:45px;}
+  .c2{ width:70px;height:26px; top:100px; right:12%; }
+  .c2:before{width:40px;height:40px; top:-20px; left:8px;}
+  .c2:after{width:32px;height:32px; top:-12px; left:36px;}
+
+  .wrap{ position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:28px 20px 60px; }
+
+  /* ---------- SETUP SCREEN ---------- */
+  .title-banner{ text-align:center; margin-bottom:6px; }
+  .title-banner h1{
+    font-size:44px; font-weight:800; color:var(--ink); margin:0;
+    text-shadow: 3px 3px 0 var(--sun);
+    letter-spacing:0.5px;
+  }
+  .title-banner p{ font-size:17px; margin:6px 0 0; color:#454550; }
+
+  .panel{
+    background:var(--cream);
+    border-radius:22px;
+    padding:26px 28px;
+    box-shadow: var(--shadow), 0 2px 18px rgba(0,0,0,0.08);
+    margin-top:22px;
+    border:3px solid #fff;
+  }
+  .panel h2{ margin-top:0; font-size:24px; }
+
+  .tables-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:10px;
+    margin:16px 0 22px;
+  }
+  .table-chip{
+    position:relative;
+  }
+  .table-chip input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .table-chip label{
+    display:flex; align-items:center; justify-content:center;
+    height:56px; border-radius:14px;
+    background:#fff; border:3px solid #E4DFD2;
+    font-family:'Baloo 2'; font-size:22px; font-weight:700; color:#8b8b8b;
+    cursor:pointer; transition: all .15s ease;
+    user-select:none;
+  }
+  .table-chip input:checked + label{
+    background:var(--player); border-color:var(--player); color:#fff;
+    box-shadow: 0 4px 0 #1f7fd6;
+    transform:translateY(-2px);
+  }
+  .chip-row-actions{ display:flex; gap:10px; margin-bottom:4px; }
+  .mini-btn{
+    font-family:'Atkinson Hyperlegible'; font-weight:700; font-size:14px;
+    border:2px solid #D8D2C2; background:#fff; color:#666;
+    border-radius:10px; padding:7px 14px; cursor:pointer;
+  }
+  .mini-btn:hover{ background:#f2efe6; }
+
+  .diff-row{ display:flex; gap:12px; margin:14px 0 6px; flex-wrap:wrap; }
+  .diff-card{ flex:1; min-width:150px; position:relative; }
+  .diff-card input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .diff-card label{
+    display:block; border-radius:16px; border:3px solid #E4DFD2; background:#fff;
+    padding:14px 16px; cursor:pointer; transition:all .15s ease;
+  }
+  .diff-card label .dname{ font-family:'Baloo 2'; font-weight:700; font-size:18px; display:block; }
+  .diff-card label .ddesc{ font-size:13px; color:#777; }
+  .diff-card input:checked + label{
+    border-color:var(--sunset); background:#FFF1EA;
+    transform:translateY(-2px); box-shadow: var(--shadow);
+  }
+
+  .format-row{ display:flex; gap:12px; margin:14px 0 6px; flex-wrap:wrap; }
+
+  .start-btn{
+    display:block; width:100%; margin-top:22px;
+    font-family:'Baloo 2'; font-weight:800; font-size:24px;
+    background:var(--sunset); color:#fff; border:none; border-radius:16px;
+    padding:16px; cursor:pointer; box-shadow: 0 6px 0 #C74A28;
+    transition: transform .08s ease;
+  }
+  .start-btn:active{ transform:translateY(4px); box-shadow:0 2px 0 #C74A28; }
+
+  /* ---------- RACE SCREEN ---------- */
+  #raceScreen{ display:none; }
+  .hud{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+  .hud-item{
+    background:#fff; border-radius:12px; padding:8px 14px; font-family:'Baloo 2'; font-weight:700;
+    font-size:16px; box-shadow: 0 3px 0 rgba(0,0,0,0.1); display:flex; align-items:center; gap:6px;
+  }
+  .streak-flame{ color:var(--sunset); }
+
+  .track{
+    position:relative;
+    background: linear-gradient(var(--road), var(--road-dark));
+    border-radius:18px;
+    padding:18px 0;
+    margin-bottom:16px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 4px #2a2a32, 0 4px 14px rgba(0,0,0,0.2);
+  }
+  .lane{
+    position:relative;
+    height:78px;
+    margin:6px 0;
+  }
+  .lane-dashes{
+    position:absolute; top:50%; left:0; right:70px; height:0;
+    border-top:4px dashed #ffffff55; transform:translateY(-1px);
+  }
+  .mile-markers{ position:absolute; inset:0; }
+  .mile-marker{
+    position:absolute; top:0; bottom:0; width:2px; background:#ffffff2a;
+  }
+  .mile-marker span{
+    position:absolute; top:-2px; left:6px; font-family:'Baloo 2'; font-size:11px; color:#ffffff70;
+  }
+  .finish-flag{
+    position:absolute; right:6px; top:-4px; bottom:-4px; width:20px;
+    background: repeating-linear-gradient(45deg, #fff 0 8px, #222 8px 16px);
+    border-radius:4px;
+  }
+  .car{
+    position:absolute; top:50%; transform:translate(0,-50%) scaleX(-1);
+    font-size:40px; transition: left .5s cubic-bezier(.2,.8,.3,1);
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+    z-index:2;
+  }
+  .car.boost{ animation: zoom .4s ease; }
+  @keyframes zoom{ 0%{transform:translate(0,-50%) scaleX(-1) scale(1);} 40%{transform:translate(0,-50%) scaleX(-1) scale(1.25) rotate(3deg);} 100%{transform:translate(0,-50%) scaleX(-1) scale(1);} }
+  .lane-label{
+    position:absolute; left:8px; top:2px; font-family:'Baloo 2'; font-weight:700; font-size:12px; color:#fff9; z-index:3;
+  }
+
+  .qpanel{
+    background:var(--cream); border-radius:20px; padding:24px; box-shadow: var(--shadow);
+    border:3px solid #fff;
+  }
+  .timer-bar-track{ height:12px; background:#eee2cd; border-radius:8px; overflow:hidden; margin-bottom:18px; }
+  .timer-bar{ height:100%; background:var(--good); width:100%; transition: width .1s linear, background .3s; border-radius:8px; }
+
+  .question-area{ text-align:center; margin-bottom:22px; min-height:110px; display:flex; align-items:center; justify-content:center; }
+  .eq-simple{ font-family:'Baloo 2'; font-weight:800; font-size:52px; color:var(--ink); }
+  .eq-boxes{ display:flex; align-items:center; justify-content:center; gap:14px; font-family:'Baloo 2'; font-weight:800; font-size:42px; }
+  .box{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:80px; height:80px; border:5px solid var(--ink); border-radius:14px; background:#fff; padding:0 10px;
+  }
+  .box.blank{ background:repeating-linear-gradient(135deg,#fff,#fff 8px,#f3efe4 8px,#f3efe4 16px); color:#bbb; }
+
+  .answers{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .ans-btn{
+    font-family:'Baloo 2'; font-weight:700; font-size:26px;
+    background:#fff; border:3px solid #E4DFD2; border-radius:16px;
+    padding:16px 8px; cursor:pointer; color:var(--ink);
+    box-shadow: 0 4px 0 #D8D2C2;
+    transition: transform .06s ease;
+  }
+  .ans-btn:hover{ background:#f4f0e4; }
+  .ans-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #D8D2C2; }
+  .ans-btn.correct{ background:var(--good); border-color:#2c9060; color:#fff; box-shadow:0 4px 0 #2c9060; }
+  .ans-btn.wrong{ background:var(--bad); border-color:#b53838; color:#fff; box-shadow:0 4px 0 #b53838; }
+  .ans-btn:disabled{ cursor:default; }
+
+  @media (max-width:600px){
+    .tables-grid{ grid-template-columns:repeat(5,1fr); }
+    .eq-simple{ font-size:38px; }
+    .box{ min-width:60px; height:60px; font-size:30px; }
+    .eq-boxes{ font-size:30px; gap:8px; }
+    .answers{ grid-template-columns:repeat(2,1fr); }
+    .car{ font-size:30px; }
+  }
+
+  /* ---------- END SCREEN ---------- */
+  #endScreen{ display:none; text-align:center; }
+  .end-banner{ font-family:'Baloo 2'; font-weight:800; font-size:40px; margin-bottom:6px; }
+  .end-banner.win{ color:var(--good); }
+  .end-banner.lose{ color:var(--sunset); }
+  .stats-row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:20px 0; }
+  .stat-card{ background:#fff; border-radius:14px; padding:14px 22px; box-shadow: var(--shadow); min-width:120px; }
+  .stat-card .num{ font-family:'Baloo 2'; font-weight:800; font-size:28px; }
+  .stat-card .lbl{ font-size:13px; color:#777; }
+  .end-btns{ display:flex; gap:14px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .end-btns button{
+    font-family:'Baloo 2'; font-weight:700; font-size:18px;
+    border:none; border-radius:14px; padding:14px 26px; cursor:pointer; box-shadow: var(--shadow);
+  }
+  #playAgainBtn{ background:var(--player); color:#fff; }
+  #changeSettingsBtn{ background:#fff; color:var(--ink); border:3px solid #E4DFD2; box-shadow:0 4px 0 #D8D2C2; }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="cloud c1"></div>
+<div class="cloud c2"></div>
+
+<div class="wrap">
+
+  <!-- SETUP SCREEN -->
+  <div id="setupScreen">
+    <div class="title-banner">
+      <h1>🏁 Times Tables Racer</h1>
+      <p>Answer fast, answer right, and race to the finish line!</p>
+    </div>
+
+    <div class="panel">
+      <h2>Pick your tables</h2>
+      <div class="chip-row-actions">
+        <button class="mini-btn" id="selectAllBtn">Select all</button>
+        <button class="mini-btn" id="clearAllBtn">Clear all</button>
+      </div>
+      <div class="tables-grid" id="tablesGrid"></div>
+
+      <h2>Question style</h2>
+      <div class="format-row">
+        <div class="diff-card">
+          <input type="radio" name="qformat" id="fmtBoth" value="both" checked>
+          <label for="fmtBoth"><span class="dname">Mix it up</span><span class="ddesc">Both styles below</span></label>
+        </div>
+        <div class="diff-card">
+          <input type="radio" name="qformat" id="fmtSimple" value="simple">
+          <label for="fmtSimple"><span class="dname">2 × 3 = ?</span><span class="ddesc">Find the product</span></label>
+        </div>
+        <div class="diff-card">
+          <input type="radio" name="qformat" id="fmtMissing" value="missing">
+          <label for="fmtMissing"><span class="dname">2 × ▢ = 10</span><span class="ddesc">Find the missing number</span></label>
+        </div>
+      </div>
+
+      <h2>Race speed</h2>
+      <div class="diff-row">
+        <div class="diff-card">
+          <input type="radio" name="diff" id="diffEasy" value="easy">
+          <label for="diffEasy"><span class="dname">Easy</span><span class="ddesc">12s per question, slower rival</span></label>
+        </div>
+        <div class="diff-card">
+          <input type="radio" name="diff" id="diffMed" value="medium" checked>
+          <label for="diffMed"><span class="dname">Medium</span><span class="ddesc">8s per question</span></label>
+        </div>
+        <div class="diff-card">
+          <input type="radio" name="diff" id="diffHard" value="hard">
+          <label for="diffHard"><span class="dname">Hard</span><span class="ddesc">5s per question, fast rival</span></label>
+        </div>
+      </div>
+
+      <button class="start-btn" id="startBtn">Start the race! 🚦</button>
+    </div>
+  </div>
+
+  <!-- RACE SCREEN -->
+  <div id="raceScreen">
+    <div class="hud">
+      <div class="hud-item">⭐ Score: <span id="scoreVal">0</span></div>
+      <div class="hud-item"><span class="streak-flame">🔥</span> Streak: <span id="streakVal">0</span></div>
+      <div class="hud-item">❤️ <span id="livesVal">3</span></div>
+    </div>
+
+    <div class="track">
+      <div class="lane" id="playerLane">
+        <div class="lane-label">YOU</div>
+        <div class="lane-dashes"></div>
+        <div class="mile-markers" id="playerMarkers"></div>
+        <div class="finish-flag"></div>
+        <div class="car" id="playerCar" style="left:0%;">🚗</div>
+      </div>
+      <div class="lane" id="rivalLane">
+        <div class="lane-label">RIVAL</div>
+        <div class="lane-dashes"></div>
+        <div class="mile-markers" id="rivalMarkers"></div>
+        <div class="finish-flag"></div>
+        <div class="car" id="rivalCar" style="left:0%;">🚙</div>
+      </div>
+    </div>
+
+    <div class="qpanel">
+      <div class="timer-bar-track"><div class="timer-bar" id="timerBar"></div></div>
+      <div class="question-area" id="questionArea"></div>
+      <div class="answers" id="answersArea"></div>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="endScreen">
+    <div class="panel">
+      <div class="end-banner" id="endBanner"></div>
+      <p id="endSub" style="font-size:16px;color:#555;"></p>
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="statCorrect">0</div><div class="lbl">Correct</div></div>
+        <div class="stat-card"><div class="num" id="statWrong">0</div><div class="lbl">Missed</div></div>
+        <div class="stat-card"><div class="num" id="statBestStreak">0</div><div class="lbl">Best streak</div></div>
+        <div class="stat-card"><div class="num" id="statAvgTime">0s</div><div class="lbl">Avg. time</div></div>
+      </div>
+      <div class="end-btns">
+        <button id="playAgainBtn">Race again 🔁</button>
+        <button id="changeSettingsBtn">Change settings ⚙️</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // ---------- SETUP: build table chips ----------
+  const tablesGrid = document.getElementById('tablesGrid');
+  for(let i=1;i<=10;i++){
+    const div = document.createElement('div');
+    div.className = 'table-chip';
+    div.innerHTML = `<input type="checkbox" id="tbl${i}" value="${i}" checked><label for="tbl${i}">${i}</label>`;
+    tablesGrid.appendChild(div);
+  }
+  document.getElementById('selectAllBtn').onclick = ()=>{
+    document.querySelectorAll('.tables-grid input').forEach(cb=>cb.checked=true);
+  };
+  document.getElementById('clearAllBtn').onclick = ()=>{
+    document.querySelectorAll('.tables-grid input').forEach(cb=>cb.checked=false);
+  };
+
+  // ---------- STATE ----------
+  let selectedTables = [];
+  let qFormat = 'both';
+  let difficulty = 'medium';
+  const DIFF_SETTINGS = {
+    easy:   { time: 12, rivalSpeed: 0.9,  jitter: 0.4 },
+    medium: { time: 8,  rivalSpeed: 1.5,  jitter: 0.6 },
+    hard:   { time: 5,  rivalSpeed: 2.3,  jitter: 0.9 }
+  };
+
+  let playerProgress = 0; // 0-100
+  let rivalProgress = 0;
+  let score = 0, streak = 0, bestStreak = 0, lives = 3;
+  let correctCount = 0, wrongCount = 0;
+  let answerTimes = [];
+  let currentAnswer = null;
+  let questionStart = 0;
+  let timerInterval = null;
+  let rivalInterval = null;
+  let timeLeft = 0;
+  let gameActive = false;
+  let currentTableForMarkers = 2;
+
+  const setupScreen = document.getElementById('setupScreen');
+  const raceScreen = document.getElementById('raceScreen');
+  const endScreen = document.getElementById('endScreen');
+
+  function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  // ---------- START ----------
+  document.getElementById('startBtn').onclick = () => {
+    selectedTables = Array.from(document.querySelectorAll('.tables-grid input:checked')).map(cb=>parseInt(cb.value));
+    if(selectedTables.length===0){ alert("Pick at least one times table to race with!"); return; }
+    qFormat = document.querySelector('input[name="qformat"]:checked').value;
+    difficulty = document.querySelector('input[name="diff"]:checked').value;
+
+    // reset state
+    playerProgress = 0; rivalProgress = 0;
+    score=0; streak=0; bestStreak=0; lives=3;
+    correctCount=0; wrongCount=0; answerTimes=[];
+    updateHud();
+    document.getElementById('playerCar').style.left='0%';
+    document.getElementById('rivalCar').style.left='0%';
+    buildMileMarkers();
+
+    setupScreen.style.display='none';
+    endScreen.style.display='none';
+    raceScreen.style.display='block';
+
+    gameActive = true;
+    startRivalMovement();
+    nextQuestion();
+  };
+
+  function buildMileMarkers(){
+    const pMarkers = document.getElementById('playerMarkers');
+    const rMarkers = document.getElementById('rivalMarkers');
+    pMarkers.innerHTML=''; rMarkers.innerHTML='';
+    const table = pickRandom(selectedTables);
+    currentTableForMarkers = table;
+    for(let m=1; m<=10; m++){
+      const pos = m*9; // spread markers across track, leaving room before finish
+      const val = table*m;
+      [pMarkers,rMarkers].forEach(container=>{
+        const marker = document.createElement('div');
+        marker.className='mile-marker';
+        marker.style.left = pos+'%';
+        marker.innerHTML = `<span>${val}</span>`;
+        container.appendChild(marker);
+      });
+    }
+  }
+
+  // ---------- RIVAL MOVEMENT ----------
+  function startRivalMovement(){
+    clearInterval(rivalInterval);
+    const settings = DIFF_SETTINGS[difficulty];
+    rivalInterval = setInterval(()=>{
+      if(!gameActive) return;
+      const step = (settings.rivalSpeed/10) + (Math.random()*settings.jitter/10);
+      rivalProgress = Math.min(100, rivalProgress + step);
+      document.getElementById('rivalCar').style.left = rivalProgress+'%';
+      if(rivalProgress>=100){
+        endGame(false);
+      }
+    }, 100);
+  }
+
+  // ---------- QUESTION GENERATION ----------
+  function generateQuestion(){
+    const a = pickRandom(selectedTables);
+    const b = randInt(1,10);
+    const product = a*b;
+    let type = qFormat;
+    if(qFormat==='both'){ type = Math.random()<0.5 ? 'simple' : 'missing'; }
+
+    let questionHtml, answer, distractorBase;
+    if(type==='simple'){
+      questionHtml = `<div class="eq-simple">${a} &times; ${b} = ?</div>`;
+      answer = product;
+      distractorBase = product;
+    } else {
+      // missing factor format: a x ? = product, or ? x b = product (box style like worksheet)
+      const blankFirst = Math.random() < 0.5;
+      if(blankFirst){
+        questionHtml = `<div class="eq-boxes">
+            <div class="box blank">?</div><div>&times;</div>
+            <div class="box">${b}</div><div>=</div>
+            <div class="box">${product}</div>
+          </div>`;
+        answer = a;
+        distractorBase = a;
+      } else {
+        questionHtml = `<div class="eq-boxes">
+            <div class="box">${a}</div><div>&times;</div>
+            <div class="box blank">?</div><div>=</div>
+            <div class="box">${product}</div>
+          </div>`;
+        answer = b;
+        distractorBase = b;
+      }
+    }
+    return { questionHtml, answer, type, a, b, product };
+  }
+
+  function generateDistractors(correct, max){
+    const set = new Set([correct]);
+    let tries = 0;
+    while(set.size < 4 && tries < 50){
+      tries++;
+      const offset = randInt(-4,4) || 1;
+      let candidate = correct + offset;
+      if(candidate < 1) candidate = correct + Math.abs(offset) + 1;
+      if(max && candidate > max) candidate = correct - Math.abs(offset) - 1;
+      if(candidate>0) set.add(candidate);
+    }
+    return Array.from(set).sort(()=>Math.random()-0.5);
+  }
+
+  function nextQuestion(){
+    if(!gameActive) return;
+    const q = generateQuestion();
+    currentAnswer = q.answer;
+    questionStart = Date.now();
+
+    document.getElementById('questionArea').innerHTML = q.questionHtml;
+
+    const maxVal = q.type==='simple' ? 100 : 10;
+    const options = generateDistractors(q.answer, maxVal);
+    const answersArea = document.getElementById('answersArea');
+    answersArea.innerHTML='';
+    options.forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.className='ans-btn';
+      btn.textContent = opt;
+      btn.onclick = ()=>handleAnswer(opt, btn);
+      answersArea.appendChild(btn);
+    });
+
+    const settings = DIFF_SETTINGS[difficulty];
+    timeLeft = settings.time;
+    updateTimerBar(1);
+    clearInterval(timerInterval);
+    const totalMs = settings.time*1000;
+    const tickMs = 100;
+    let elapsed = 0;
+    timerInterval = setInterval(()=>{
+      elapsed += tickMs;
+      const frac = Math.max(0, 1 - elapsed/totalMs);
+      updateTimerBar(frac);
+      if(elapsed >= totalMs){
+        clearInterval(timerInterval);
+        handleAnswer(null, null); // timeout = wrong
+      }
+    }, tickMs);
+  }
+
+  function updateTimerBar(frac){
+    const bar = document.getElementById('timerBar');
+    bar.style.width = (frac*100)+'%';
+    bar.style.background = frac > 0.4 ? 'var(--good)' : (frac > 0.15 ? '#E0A500' : 'var(--bad)');
+  }
+
+  function handleAnswer(selected, btnEl){
+    if(!gameActive) return;
+    clearInterval(timerInterval);
+    const allBtns = document.querySelectorAll('.ans-btn');
+    allBtns.forEach(b=>b.disabled=true);
+
+    const timeTaken = (Date.now()-questionStart)/1000;
+    const isCorrect = selected === currentAnswer;
+
+    allBtns.forEach(b=>{
+      if(parseInt(b.textContent)===currentAnswer) b.classList.add('correct');
+      else if(b===btnEl) b.classList.add('wrong');
+    });
+
+    if(isCorrect){
+      correctCount++;
+      streak++;
+      bestStreak = Math.max(bestStreak, streak);
+      answerTimes.push(timeTaken);
+      const settings = DIFF_SETTINGS[difficulty];
+      const speedBonus = Math.max(0, (settings.time - timeTaken)/settings.time); // 0-1
+      const boost = 7 + speedBonus*6; // 7-13%
+      playerProgress = Math.min(100, playerProgress + boost);
+      score += 10 + Math.round(speedBonus*10) + Math.min(streak,5)*2;
+      moveCar('playerCar', playerProgress, true);
+    } else {
+      wrongCount++;
+      streak = 0;
+      lives = Math.max(0, lives-1);
+      moveCar('playerCar', playerProgress, false);
+    }
+    updateHud();
+
+    setTimeout(()=>{
+      if(!gameActive) return;
+      if(playerProgress>=100){ endGame(true); return; }
+      if(lives<=0){ endGame(false); return; }
+      buildMileMarkersIfNeeded();
+      nextQuestion();
+    }, 900);
+  }
+
+  let questionsSinceMarkerRebuild = 0;
+  function buildMileMarkersIfNeeded(){
+    questionsSinceMarkerRebuild++;
+    if(questionsSinceMarkerRebuild>=6){
+      questionsSinceMarkerRebuild=0;
+      buildMileMarkers();
+    }
+  }
+
+  function moveCar(id, progress, boosted){
+    const car = document.getElementById(id);
+    car.style.left = progress+'%';
+    if(boosted){
+      car.classList.remove('boost'); void car.offsetWidth; car.classList.add('boost');
+    }
+  }
+
+  function updateHud(){
+    document.getElementById('scoreVal').textContent = score;
+    document.getElementById('streakVal').textContent = streak;
+    document.getElementById('livesVal').textContent = '❤️'.repeat(lives) || '💔';
+  }
+
+  function endGame(playerWon){
+    gameActive = false;
+    clearInterval(timerInterval);
+    clearInterval(rivalInterval);
+    raceScreen.style.display='none';
+    endScreen.style.display='block';
+
+    const banner = document.getElementById('endBanner');
+    const sub = document.getElementById('endSub');
+    if(playerWon){
+      banner.textContent = '🏆 You won the race!';
+      banner.className = 'end-banner win';
+      sub.textContent = "Awesome multiplying — you crossed the finish line first!";
+    } else {
+      banner.textContent = '🏁 Rival wins this time!';
+      banner.className = 'end-banner lose';
+      sub.textContent = lives<=0 ? "You ran out of hearts. Have another go!" : "So close! Try again and beat the rival.";
+    }
+
+    document.getElementById('statCorrect').textContent = correctCount;
+    document.getElementById('statWrong').textContent = wrongCount;
+    document.getElementById('statBestStreak').textContent = bestStreak;
+    const avg = answerTimes.length ? (answerTimes.reduce((a,b)=>a+b,0)/answerTimes.length) : 0;
+    document.getElementById('statAvgTime').textContent = avg.toFixed(1)+'s';
+  }
+
+  document.getElementById('playAgainBtn').onclick = ()=>{
+    document.getElementById('startBtn').click();
+  };
+  document.getElementById('changeSettingsBtn').onclick = ()=>{
+    endScreen.style.display='none';
+    setupScreen.style.display='block';
+  };
+
+})();
+</script>
+
+</body>
+</html>
